@@ -221,6 +221,33 @@ class LERFModel(NerfactoModel):
             mask = (outputs["relevancy_0"] < 0.5).squeeze()
             outputs[f"composited_{i}"][mask, :] = outputs["rgb"][mask, :]
         return outputs
+    
+    @torch.no_grad()
+    def get_rgb_picture_taking(self, camera_ray_bundle: RayBundle) -> Dict[str, torch.Tensor]:
+        num_rays_per_chunk = self.config.eval_num_rays_per_chunk
+        image_height, image_width = camera_ray_bundle.origins.shape[:2]
+        num_rays = len(camera_ray_bundle)
+        outputs_lists = defaultdict(list)  # dict from name:list of outputs (1 per bundle)
+        outputs = {}
+        for i in range(0, num_rays, num_rays_per_chunk):
+            start_idx = i
+            end_idx = i + num_rays_per_chunk
+            ray_bundle = camera_ray_bundle.get_row_major_sliced_ray_bundle(start_idx, end_idx)
+            ray_samples, _, _ = self.proposal_sampler(
+                ray_bundle,
+                density_fns=self.density_fns
+            )
+            field_outputs = self.field(ray_samples, compute_normals=self.config.predict_normals)
+            weights = ray_samples.get_weights(field_outputs[FieldHeadNames.DENSITY])
+            rgb = self.renderer_rgb(rgb=field_outputs[FieldHeadNames.RGB], weights=weights)
+            outputs_lists["rgb"].append(rgb)
+        outputs["rgb"] = torch.cat(outputs_lists["rgb"]).view(
+            image_height,
+            image_width,
+            -1
+        )  # type: ignore
+        return outputs
+
 
     def _get_outputs_nerfacto(self, ray_samples: RaySamples):
         field_outputs = self.field(ray_samples, compute_normals=self.config.predict_normals)
