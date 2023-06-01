@@ -1,6 +1,8 @@
 import typing
 from dataclasses import dataclass, field
 from typing import Literal, Type
+import torch
+
 
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -58,13 +60,20 @@ class LERFPipeline(VanillaPipeline):
         )
         # self.datamanager.to(device)
 
-        # TODO(ethan): get rid of scene_bounds from the model
-        assert self.datamanager.train_dataset is not None, "Missing input dataset"
+        scene_box = self.datamanager.train_dataset.scene_box
+        num_train_data = len(self.datamanager.train_dataset)
+        metadata = self.datamanager.train_dataset.metadata
+
+        del self.datamanager
+        torch.cuda.empty_cache()
+
+        # # TODO(ethan): get rid of scene_bounds from the model
+        # assert self.datamanager.train_dataset is not None, "Missing input dataset"
 
         self._model = config.model.setup(
-            scene_box=self.datamanager.train_dataset.scene_box,
-            num_train_data=len(self.datamanager.train_dataset),
-            metadata=self.datamanager.train_dataset.metadata,
+            scene_box=scene_box,
+            num_train_data=num_train_data,
+            metadata=metadata,
             image_encoder=self.image_encoder,
         )
         self.model.to(device)

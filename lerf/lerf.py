@@ -12,7 +12,6 @@ from nerfstudio.field_components.spatial_distortions import SceneContraction
 from nerfstudio.model_components.ray_samplers import PDFSampler
 from nerfstudio.model_components.renderers import DepthRenderer
 from nerfstudio.models.nerfacto import NerfactoModel, NerfactoModelConfig
-from nerfstudio.utils.colormaps import ColormapOptions, apply_colormap
 from nerfstudio.viewer.server.viewer_elements import *
 from torch.nn import Parameter
 
@@ -115,10 +114,13 @@ class LERFModel(NerfactoModel):
                 if preset_scales is None or j == i:
                     probs = self.image_encoder.get_relevancy(clip_output, j)
                     pos_prob = probs[..., 0:1]
-                    if n_phrases_maxs[j] is None or pos_prob.max() > n_phrases_sims[j].max():
+                    if (
+                        n_phrases_maxs[j] is None
+                        or pos_prob.max() > n_phrases_sims[j].max()
+                    ):
                         n_phrases_maxs[j] = scale
                         n_phrases_sims[j] = pos_prob
-                        
+
         return torch.stack(n_phrases_sims), torch.Tensor(n_phrases_maxs)
 
     def get_outputs(self, ray_bundle: RayBundle):
