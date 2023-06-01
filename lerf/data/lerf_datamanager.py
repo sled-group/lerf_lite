@@ -37,7 +37,10 @@ CONSOLE = Console(width=120)
 from lerf.data.utils.dino_dataloader import DinoDataloader
 from lerf.data.utils.pyramid_embedding_dataloader import PyramidEmbeddingDataloader
 from lerf.encoders.image_encoder import BaseImageEncoder
-from nerfstudio.data.datamanagers.base_datamanager import VanillaDataManager, VanillaDataManagerConfig
+from nerfstudio.data.datamanagers.base_datamanager import (
+    VanillaDataManager,
+    VanillaDataManagerConfig,
+)
 
 
 @dataclass
@@ -73,10 +76,18 @@ class LERFDataManager(VanillaDataManager):  # pylint: disable=abstract-method
         **kwargs,  # pylint: disable=unused-argument
     ):
         super().__init__(
-            config=config, device=device, test_mode=test_mode, world_size=world_size, local_rank=local_rank, **kwargs
+            config=config,
+            device=device,
+            test_mode=test_mode,
+            world_size=world_size,
+            local_rank=local_rank,
+            **kwargs,
         )
         self.image_encoder: BaseImageEncoder = kwargs["image_encoder"]
-        images = [self.train_dataset[i]["image"].permute(2, 0, 1)[None, ...] for i in range(len(self.train_dataset))]
+        images = [
+            self.train_dataset[i]["image"].permute(2, 0, 1)[None, ...]
+            for i in range(len(self.train_dataset))
+        ]
         images = torch.cat(images)
 
         cache_dir = f"outputs/{self.config.dataparser.data.name}"
@@ -103,6 +114,7 @@ class LERFDataManager(VanillaDataManager):  # pylint: disable=abstract-method
             cache_path=clip_cache_path,
             model=self.image_encoder,
         )
+        torch.cuda.empty_cache()
 
     def next_train(self, step: int) -> Tuple[RayBundle, Dict]:
         """Returns the next batch of data from the train dataloader."""

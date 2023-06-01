@@ -1,10 +1,11 @@
 import typing
 from dataclasses import dataclass, field
 from typing import Literal, Type
+import torch
 
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
-
+from nerfstudio.data.scene_box import SceneBox
 from nerfstudio.configs import base_config as cfg
 from nerfstudio.models.base_model import ModelConfig
 from nerfstudio.pipelines.base_pipeline import (
@@ -49,22 +50,25 @@ class LERFPipeline(VanillaPipeline):
 
         self.image_encoder: BaseImageEncoder = config.network.setup()
 
-        self.datamanager: LERFDataManager = config.datamanager.setup(
-            device=device,
-            test_mode=test_mode,
-            world_size=world_size,
-            local_rank=local_rank,
-            image_encoder=self.image_encoder,
-        )
+        # self.datamanager: LERFDataManager = config.datamanager.setup(
+        #     device=device,
+        #     test_mode=test_mode,
+        #     world_size=world_size,
+        #     local_rank=local_rank,
+        #     image_encoder=self.image_encoder,
+        # )
         # self.datamanager.to(device)
 
         # TODO(ethan): get rid of scene_bounds from the model
-        assert self.datamanager.train_dataset is not None, "Missing input dataset"
+        # assert self.datamanager.train_dataset is not None, "Missing input dataset"
 
         self._model = config.model.setup(
-            scene_box=self.datamanager.train_dataset.scene_box,
-            num_train_data=len(self.datamanager.train_dataset),
-            metadata=self.datamanager.train_dataset.metadata,
+            # scene_box=self.datamanager.train_dataset.scene_box,
+            # num_train_data=len(self.datamanager.train_dataset),
+            # metadata=self.datamanager.train_dataset.metadata,
+            scene_box=SceneBox(aabb=torch.tensor([[-1, -1, -1], [1, 1, 1]])),
+            num_train_data=532,
+            metadata={"depth_filenames": None, "depth_unit_scale_factor": 0.001},
             image_encoder=self.image_encoder,
         )
         self.model.to(device)

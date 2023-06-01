@@ -7,10 +7,11 @@ import torchvision
 try:
     import open_clip
 except ImportError:
-    assert False, "open_clip is not installed, install it with `pip install open-clip-torch`"
+    assert (
+        False
+    ), "open_clip is not installed, install it with `pip install open-clip-torch`"
 
-from lerf.encoders.image_encoder import (BaseImageEncoder,
-                                         BaseImageEncoderConfig)
+from lerf.encoders.image_encoder import BaseImageEncoder, BaseImageEncoderConfig
 from nerfstudio.viewer.server.viewer_elements import ViewerText
 
 
@@ -51,9 +52,13 @@ class OpenCLIPNetwork(BaseImageEncoder):
         self.positives = self.positive_input.value.split(";")
         self.negatives = self.config.negatives
         with torch.no_grad():
-            tok_phrases = torch.cat([self.tokenizer(phrase) for phrase in self.positives]).to("cuda")
+            tok_phrases = torch.cat(
+                [self.tokenizer(phrase) for phrase in self.positives]
+            ).to("cuda")
             self.pos_embeds = model.encode_text(tok_phrases)
-            tok_phrases = torch.cat([self.tokenizer(phrase) for phrase in self.negatives]).to("cuda")
+            tok_phrases = torch.cat(
+                [self.tokenizer(phrase) for phrase in self.negatives]
+            ).to("cuda")
             self.neg_embeds = model.encode_text(tok_phrases)
         self.pos_embeds /= self.pos_embeds.norm(dim=-1, keepdim=True)
         self.neg_embeds /= self.neg_embeds.norm(dim=-1, keepdim=True)
@@ -67,19 +72,23 @@ class OpenCLIPNetwork(BaseImageEncoder):
 
     @property
     def name(self) -> str:
-        return "openclip_{}_{}".format(self.config.clip_model_type, self.config.clip_model_pretrained)
+        return "openclip_{}_{}".format(
+            self.config.clip_model_type, self.config.clip_model_pretrained
+        )
 
     @property
     def embedding_dim(self) -> int:
         return self.config.clip_n_dims
-    
-    def gui_cb(self,element):
+
+    def gui_cb(self, element):
         self.set_positives(element.value.split(";"))
 
     def set_positives(self, text_list):
         self.positives = text_list
         with torch.no_grad():
-            tok_phrases = torch.cat([self.tokenizer(phrase) for phrase in self.positives]).to("cuda")
+            tok_phrases = torch.cat(
+                [self.tokenizer(phrase) for phrase in self.positives]
+            ).to("cuda")
             self.pos_embeds = self.model.encode_text(tok_phrases)
         self.pos_embeds /= self.pos_embeds.norm(dim=-1, keepdim=True)
 
@@ -94,9 +103,11 @@ class OpenCLIPNetwork(BaseImageEncoder):
         sims = torch.stack((repeated_pos, negative_vals), dim=-1)  # rays x N-phrase x 2
         softmax = torch.softmax(10 * sims, dim=-1)  # rays x n-phrase x 2
         best_id = softmax[..., 0].argmin(dim=1)  # rays x 2
-        return torch.gather(softmax, 1, best_id[..., None, None].expand(best_id.shape[0], len(self.negatives), 2))[
-            :, 0, :
-        ]
+        return torch.gather(
+            softmax,
+            1,
+            best_id[..., None, None].expand(best_id.shape[0], len(self.negatives), 2),
+        )[:, 0, :]
 
     def encode_image(self, input):
         processed_input = self.process(input).half()

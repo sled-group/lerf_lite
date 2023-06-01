@@ -12,7 +12,8 @@ from nerfstudio.field_components.spatial_distortions import SceneContraction
 from nerfstudio.model_components.ray_samplers import PDFSampler
 from nerfstudio.model_components.renderers import DepthRenderer
 from nerfstudio.models.nerfacto import NerfactoModel, NerfactoModelConfig
-from nerfstudio.utils.colormaps import apply_colormap
+
+# from nerfstudio.utils.colormaps import apply_colormap
 from nerfstudio.viewer.server.viewer_elements import *
 from torch.nn import Parameter
 
@@ -49,7 +50,7 @@ class LERFModel(NerfactoModel):
             self.config.hashgrid_layers,
             self.config.hashgrid_sizes,
             self.config.hashgrid_resolutions,
-            clip_n_dims=self.image_encoder.embedding_dim,
+            clip_n_dims=512,
         )
 
         # populate some viewer logic
